@@ -3,96 +3,418 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Værgraf for Oslo (met.no)</title>
+  <title>Værgraf for Oslo • met.no</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    :root {
+      --bg-1: #071124;
+      --bg-2: #102348;
+      --glass: rgba(255,255,255,0.1);
+      --glass-2: rgba(255,255,255,0.06);
+      --text: #eef4ff;
+      --muted: #bfd0ff;
+      --accent: #57a5ff;
+      --accent-2: #7dd3fc;
+      --ok: #86efac;
+      --danger: #fecaca;
+      --border: rgba(255,255,255,0.2);
+      --shadow: 0 14px 40px rgba(2, 8, 23, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      margin: 2rem;
-      background: #f7f9fc;
-      color: #1f2937;
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 600px at 10% -10%, rgba(125, 211, 252, 0.15), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, rgba(96, 165, 250, 0.22), transparent 55%),
+        linear-gradient(180deg, var(--bg-2), var(--bg-1));
+      padding: 22px;
     }
-    .card {
-      max-width: 920px;
-      background: white;
-      border: 1px solid #e5e7eb;
+
+    .app {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--glass);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .hero {
+      padding: 18px 18px 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.2vw, 2rem);
+    }
+
+    .sub {
+      margin: .45rem 0 .8rem;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 75ch;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .55rem;
+      margin-bottom: .65rem;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--glass-2);
+      color: var(--text);
+      padding: .38rem .72rem;
+      border-radius: 999px;
+      font-size: .86rem;
+      cursor: pointer;
+      transition: .16s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); border-color: #93c5fd; }
+    .btn.active {
+      background: linear-gradient(90deg, rgba(87,165,255,0.35), rgba(125,211,252,0.35));
+      border-color: #93c5fd;
+      font-weight: 600;
+    }
+
+    .meta {
+      font-size: .84rem;
+      color: var(--muted);
+      margin-top: .25rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+
+    .stat {
+      border: 1px solid var(--border);
+      background: var(--glass-2);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .stat .k { color: var(--muted); font-size: .82rem; margin-bottom: 2px; }
+    .stat .v { font-size: 1.18rem; font-weight: 700; letter-spacing: .2px; }
+
+    .chart-wrap {
+      padding: 12px 12px 10px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      background: rgba(8, 20, 43, 0.35);
+      border-radius: 14px;
+      padding: 10px;
+    }
+
+    .hourly {
+      padding: 10px;
+      overflow-x: auto;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .hourly-grid {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(74px, 1fr);
+      gap: 8px;
+      min-width: max-content;
+    }
+
+    .hour {
+      border: 1px solid var(--border);
+      background: var(--glass-2);
       border-radius: 12px;
-      padding: 1rem 1.25rem 1.25rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      padding: 8px 8px 7px;
+      text-align: center;
     }
-    h1 { margin: 0 0 .25rem; }
-    p { margin-top: 0; color: #4b5563; }
-    #status { margin: .75rem 0 0; font-size: .95rem; }
-    .ok { color: #065f46; }
-    .err { color: #991b1b; }
+
+    .hour .t { font-size: .78rem; color: var(--muted); }
+    .hour .i { font-size: 1.15rem; line-height: 1.4; }
+    .hour .c { font-size: .94rem; font-weight: 700; }
+    .hour .r { font-size: .76rem; color: #bfdbfe; }
+
+    #status {
+      padding: 0 16px 14px;
+      font-size: .9rem;
+      color: var(--muted);
+    }
+
+    #status.ok { color: var(--ok); }
+    #status.err { color: var(--danger); }
+
+    a { color: #bae6fd; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Værgraf for Oslo</h1>
-    <p>Temperatur de neste 24 timene fra <a href="https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=59.9139&lon=10.7522" target="_blank" rel="noreferrer">met.no Locationforecast</a>.</p>
-    <canvas id="weatherChart" height="120"></canvas>
-    <div id="status">Henter værdata…</div>
-  </div>
+  <main class="app">
+    <section class="panel hero">
+      <h1>Oslo – værgraf</h1>
+      <p class="sub">
+        Ryddig og visuell time-for-time-oversikt med data fra
+        <a href="https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=59.9139&lon=10.7522" target="_blank" rel="noreferrer">met.no Locationforecast</a>.
+        Inspirert av en tydelig, rask og brukervennlig værvisning.
+      </p>
+
+      <div class="controls" role="group" aria-label="Velg tidsperiode">
+        <button class="btn active" data-hours="24">24 timer</button>
+        <button class="btn" data-hours="36">36 timer</button>
+        <button class="btn" data-hours="48">48 timer</button>
+      </div>
+      <div class="meta" id="meta">Laster data…</div>
+    </section>
+
+    <section class="stats" id="stats"></section>
+
+    <section class="panel chart-wrap">
+      <div class="chart-card">
+        <canvas id="weatherChart" height="120"></canvas>
+      </div>
+      <div class="hourly">
+        <div class="hourly-grid" id="hourly"></div>
+      </div>
+      <div id="status">Henter værdata…</div>
+    </section>
+  </main>
 
   <script>
     const lat = 59.9139;
     const lon = 10.7522;
-    const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`;
+    const apiUrl = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`;
+
+    const statsEl = document.getElementById('stats');
+    const hourlyEl = document.getElementById('hourly');
+    const statusEl = document.getElementById('status');
+    const metaEl = document.getElementById('meta');
+    const btns = [...document.querySelectorAll('.btn')];
+
+    let rawSeries = [];
+    let chart;
+    let selectedHours = 24;
+
+    const iconFromSymbol = (symbol = '') => {
+      const s = symbol.toLowerCase();
+      if (s.includes('clearsky')) return '☀️';
+      if (s.includes('fair')) return '🌤️';
+      if (s.includes('partlycloudy')) return '⛅';
+      if (s.includes('cloudy')) return '☁️';
+      if (s.includes('lightrain') || s.includes('rain')) return '🌧️';
+      if (s.includes('heavyrain')) return '🌧️';
+      if (s.includes('snow')) return '❄️';
+      if (s.includes('sleet')) return '🌨️';
+      if (s.includes('fog')) return '🌫️';
+      if (s.includes('thunder')) return '⛈️';
+      return '🌡️';
+    };
+
+    const n = (num, d = 0) => (num ?? NaN).toLocaleString('no-NO', {
+      minimumFractionDigits: d,
+      maximumFractionDigits: d
+    });
+
+    function formatHour(iso) {
+      return new Date(iso).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function sliceSeries(hours) {
+      return rawSeries.slice(0, hours).map((p, i) => {
+        const d = p.data || {};
+        const details = d.instant?.details || {};
+        const next1 = d.next_1_hours || d.next_6_hours || d.next_12_hours || {};
+        return {
+          idx: i,
+          time: p.time,
+          label: formatHour(p.time),
+          temp: details.air_temperature,
+          wind: details.wind_speed,
+          humidity: details.relative_humidity,
+          pressure: details.air_pressure_at_sea_level,
+          rain: next1.details?.precipitation_amount ?? 0,
+          symbol: next1.summary?.symbol_code || ''
+        };
+      });
+    }
+
+    function renderStats(points) {
+      const temps = points.map(p => p.temp).filter(Number.isFinite);
+      const rains = points.map(p => p.rain).filter(Number.isFinite);
+      const winds = points.map(p => p.wind).filter(Number.isFinite);
+
+      const now = points[0] || {};
+      const min = Math.min(...temps);
+      const max = Math.max(...temps);
+      const rainSum = rains.reduce((a, b) => a + b, 0);
+      const windMax = Math.max(...winds);
+
+      statsEl.innerHTML = `
+        <article class="stat"><div class="k">Nå</div><div class="v">${n(now.temp,1)}°C</div></article>
+        <article class="stat"><div class="k">Min / maks</div><div class="v">${n(min,1)}° / ${n(max,1)}°</div></article>
+        <article class="stat"><div class="k">Nedbør (${selectedHours}t)</div><div class="v">${n(rainSum,1)} mm</div></article>
+        <article class="stat"><div class="k">Maks vind</div><div class="v">${n(windMax,1)} m/s</div></article>
+        <article class="stat"><div class="k">Luftfuktighet nå</div><div class="v">${n(now.humidity,0)}%</div></article>
+      `;
+    }
+
+    function renderHourly(points) {
+      hourlyEl.innerHTML = points.slice(0, 24).map((p, i) => {
+        const day = i % 6 === 0
+          ? `<div class="t">${new Date(p.time).toLocaleDateString('no-NO', { weekday: 'short' })}</div>`
+          : '<div class="t">&nbsp;</div>';
+
+        return `
+          <article class="hour" aria-label="${p.label}, ${n(p.temp,1)} grader">
+            ${day}
+            <div class="t">${p.label}</div>
+            <div class="i">${iconFromSymbol(p.symbol)}</div>
+            <div class="c">${n(p.temp,1)}°</div>
+            <div class="r">${n(p.rain,1)} mm</div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderChart(points) {
+      const labels = points.map(p => p.label);
+      const temp = points.map(p => p.temp);
+      const rain = points.map(p => p.rain);
+      const wind = points.map(p => p.wind);
+
+      if (chart) chart.destroy();
+
+      chart = new Chart(document.getElementById('weatherChart'), {
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'line',
+              label: 'Temperatur (°C)',
+              data: temp,
+              borderColor: '#7dd3fc',
+              backgroundColor: 'rgba(125,211,252,0.22)',
+              fill: true,
+              yAxisID: 'yTemp',
+              tension: 0.28,
+              pointRadius: 1.8,
+              pointHoverRadius: 4
+            },
+            {
+              type: 'bar',
+              label: 'Nedbør (mm)',
+              data: rain,
+              yAxisID: 'yRain',
+              backgroundColor: 'rgba(96,165,250,0.45)',
+              borderRadius: 5,
+              maxBarThickness: 14
+            },
+            {
+              type: 'line',
+              label: 'Vind (m/s)',
+              data: wind,
+              borderColor: '#fcd34d',
+              borderDash: [6, 5],
+              tension: 0.2,
+              fill: false,
+              yAxisID: 'yWind',
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: { color: '#dbeafe', usePointStyle: true, boxWidth: 8 }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.92)',
+              borderColor: 'rgba(148,163,184,0.4)',
+              borderWidth: 1,
+              titleColor: '#f8fafc',
+              bodyColor: '#e2e8f0'
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#cbd5e1', maxTicksLimit: 12 },
+              grid: { color: 'rgba(148,163,184,0.16)' }
+            },
+            yTemp: {
+              position: 'left',
+              ticks: { color: '#7dd3fc' },
+              title: { display: true, text: '°C', color: '#7dd3fc' },
+              grid: { color: 'rgba(148,163,184,0.18)' }
+            },
+            yRain: {
+              position: 'right',
+              beginAtZero: true,
+              ticks: { color: '#93c5fd' },
+              title: { display: true, text: 'mm', color: '#93c5fd' },
+              grid: { drawOnChartArea: false }
+            },
+            yWind: {
+              display: false,
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function render(hours) {
+      const points = sliceSeries(hours);
+      renderStats(points);
+      renderChart(points);
+      renderHourly(points);
+    }
+
+    btns.forEach(btn => btn.addEventListener('click', () => {
+      selectedHours = Number(btn.dataset.hours);
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render(selectedHours);
+    }));
 
     async function loadWeather() {
-      const statusEl = document.getElementById('status');
       try {
-        const res = await fetch(url);
+        const res = await fetch(apiUrl);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
-        const series = data?.properties?.timeseries ?? [];
+        rawSeries = data?.properties?.timeseries || [];
+        if (!rawSeries.length) throw new Error('Ingen timeserier mottatt');
 
-        const next24 = series.slice(0, 24);
-        const labels = next24.map(p => {
-          const d = new Date(p.time);
-          return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-        });
-        const temps = next24.map(p => p.data?.instant?.details?.air_temperature);
+        const updated = new Date(data?.properties?.meta?.updated_at);
+        metaEl.textContent = `Oslo (59.9139, 10.7522) • Oppdatert ${updated.toLocaleString('no-NO')} • Kilde: met.no`;
 
-        const ctx = document.getElementById('weatherChart');
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              label: 'Temperatur (°C)',
-              data: temps,
-              borderColor: '#2563eb',
-              backgroundColor: 'rgba(37,99,235,0.15)',
-              tension: 0.25,
-              fill: true,
-              pointRadius: 2
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: true },
-              tooltip: { mode: 'index', intersect: false }
-            },
-            scales: {
-              y: {
-                title: { display: true, text: '°C' }
-              },
-              x: {
-                title: { display: true, text: 'Tid (neste 24 timer)' }
-              }
-            }
-          }
-        });
-
-        statusEl.textContent = `Sist oppdatert: ${new Date(data.properties.meta.updated_at).toLocaleString('no-NO')}`;
+        render(selectedHours);
+        statusEl.textContent = 'Klar';
         statusEl.className = 'ok';
       } catch (err) {
         statusEl.textContent = `Klarte ikke hente værdata: ${err.message}`;
         statusEl.className = 'err';
+        metaEl.textContent = 'Kunne ikke laste data akkurat nå.';
       }
     }
 
