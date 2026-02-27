@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Værgraf for Oslo (met.no)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      margin: 2rem;
+      background: #f7f9fc;
+      color: #1f2937;
+    }
+    .card {
+      max-width: 920px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1rem 1.25rem 1.25rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+    h1 { margin: 0 0 .25rem; }
+    p { margin-top: 0; color: #4b5563; }
+    #status { margin: .75rem 0 0; font-size: .95rem; }
+    .ok { color: #065f46; }
+    .err { color: #991b1b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Værgraf for Oslo</h1>
+    <p>Temperatur de neste 24 timene fra <a href="https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=59.9139&lon=10.7522" target="_blank" rel="noreferrer">met.no Locationforecast</a>.</p>
+    <canvas id="weatherChart" height="120"></canvas>
+    <div id="status">Henter værdata…</div>
+  </div>
+
+  <script>
+    const lat = 59.9139;
+    const lon = 10.7522;
+    const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`;
+
+    async function loadWeather() {
+      const statusEl = document.getElementById('status');
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        const series = data?.properties?.timeseries ?? [];
+
+        const next24 = series.slice(0, 24);
+        const labels = next24.map(p => {
+          const d = new Date(p.time);
+          return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+        });
+        const temps = next24.map(p => p.data?.instant?.details?.air_temperature);
+
+        const ctx = document.getElementById('weatherChart');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Temperatur (°C)',
+              data: temps,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37,99,235,0.15)',
+              tension: 0.25,
+              fill: true,
+              pointRadius: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: true },
+              tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+              y: {
+                title: { display: true, text: '°C' }
+              },
+              x: {
+                title: { display: true, text: 'Tid (neste 24 timer)' }
+              }
+            }
+          }
+        });
+
+        statusEl.textContent = `Sist oppdatert: ${new Date(data.properties.meta.updated_at).toLocaleString('no-NO')}`;
+        statusEl.className = 'ok';
+      } catch (err) {
+        statusEl.textContent = `Klarte ikke hente værdata: ${err.message}`;
+        statusEl.className = 'err';
+      }
+    }
+
+    loadWeather();
+  </script>
+</body>
+</html>
