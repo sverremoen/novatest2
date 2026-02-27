@@ -6,3 +6,4 @@ En enkel startside i HTML.
 - `index.html` – en enkel introduksjonsside.
 
 - `oslo-vaergraf.html` – viser værgraf (temperatur neste 24 timer) for Oslo fra met.no.
+- `soloppgang-solnedgang.html` – kul visualisering av soloppgang/solnedgang i Oslo.

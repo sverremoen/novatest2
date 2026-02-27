@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oslo: Soloppgang & Solnedgang</title>
+  <style>
+    :root {
+      --bg1: #0b1020;
+      --bg2: #1d2a52;
+      --card: rgba(255,255,255,0.08);
+      --text: #eef2ff;
+      --muted: #c7d2fe;
+      --sun: #fbbf24;
+      --arc: #93c5fd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 800px at 20% 10%, #243b75 0%, var(--bg1) 45%),
+                  linear-gradient(180deg, var(--bg2), var(--bg1));
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+    }
+    .card {
+      width: min(940px, 96vw);
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 18px;
+      backdrop-filter: blur(8px);
+      padding: 1rem 1rem 1.25rem;
+      box-shadow: 0 12px 30px rgba(0,0,0,.3);
+    }
+    h1 { margin: .25rem 0 .2rem; font-size: clamp(1.2rem, 2.5vw, 1.8rem); }
+    p { margin: 0 0 .75rem; color: var(--muted); }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: .6rem;
+      margin-top: .65rem;
+    }
+    .pill {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 999px;
+      padding: .5rem .8rem;
+      font-size: .95rem;
+    }
+    .big { font-size: 1.05rem; font-weight: 600; }
+    svg { width: 100%; height: auto; display: block; }
+    .status { margin-top: .7rem; color: #bfdbfe; }
+    .error { color: #fecaca; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>☀️ Oslo: Soloppgang & Solnedgang</h1>
+    <p>Visualisering av dagens solbane over Oslo (met.no data).</p>
+
+    <svg viewBox="0 0 900 420" aria-label="Solbane">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.45"/>
+          <stop offset="100%" stop-color="#0b1020" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="900" height="420" fill="url(#sky)" />
+
+      <path id="sunArc" d="M 90 340 Q 450 40 810 340" fill="none" stroke="var(--arc)" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+      <line x1="90" y1="340" x2="810" y2="340" stroke="#e5e7eb" stroke-opacity="0.65" stroke-width="2"/>
+
+      <circle id="sun" cx="90" cy="340" r="16" fill="var(--sun)" filter="drop-shadow(0 0 10px rgba(251,191,36,.85))"/>
+
+      <text x="90" y="372" fill="#e5e7eb" font-size="14" text-anchor="middle">Soloppgang</text>
+      <text x="810" y="372" fill="#e5e7eb" font-size="14" text-anchor="middle">Solnedgang</text>
+
+      <text id="sunriseText" x="90" y="395" fill="#fef3c7" font-size="18" text-anchor="middle">--:--</text>
+      <text id="sunsetText" x="810" y="395" fill="#fef3c7" font-size="18" text-anchor="middle">--:--</text>
+    </svg>
+
+    <div class="meta">
+      <div class="pill">📍 Oslo (59.9139, 10.7522)</div>
+      <div class="pill big" id="dayLength">Dagslys: --</div>
+      <div class="pill" id="phase">Solstatus: --</div>
+      <div class="pill" id="updated">Oppdatert: --</div>
+    </div>
+
+    <div class="status" id="status">Henter soldata…</div>
+  </div>
+
+  <script>
+    const lat = 59.9139;
+    const lon = 10.7522;
+
+    const now = new Date();
+    const date = now.toISOString().slice(0,10);
+
+    const metUrl = `https://api.met.no/weatherapi/sunrise/3.0/sun?lat=${lat}&lon=${lon}&date=${date}&offset=+01:00`;
+
+    const sun = document.getElementById('sun');
+    const sunriseText = document.getElementById('sunriseText');
+    const sunsetText = document.getElementById('sunsetText');
+    const dayLengthEl = document.getElementById('dayLength');
+    const phaseEl = document.getElementById('phase');
+    const updatedEl = document.getElementById('updated');
+    const statusEl = document.getElementById('status');
+
+    function fmtTime(d) {
+      return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function durationText(ms) {
+      const totalMin = Math.round(ms / 60000);
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      return `${h}t ${m}m`;
+    }
+
+    function bezierPoint(t, p0, p1, p2) {
+      const x = (1-t)*(1-t)*p0.x + 2*(1-t)*t*p1.x + t*t*p2.x;
+      const y = (1-t)*(1-t)*p0.y + 2*(1-t)*t*p1.y + t*t*p2.y;
+      return { x, y };
+    }
+
+    function placeSun(progress) {
+      const t = Math.max(0, Math.min(1, progress));
+      const p = bezierPoint(t, {x:90,y:340}, {x:450,y:40}, {x:810,y:340});
+      sun.setAttribute('cx', p.x.toFixed(1));
+      sun.setAttribute('cy', p.y.toFixed(1));
+    }
+
+    async function loadSunData() {
+      try {
+        const res = await fetch(metUrl, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const sunriseIso = data?.properties?.sunrise?.time;
+        const sunsetIso = data?.properties?.sunset?.time;
+        if (!sunriseIso || !sunsetIso) throw new Error('Mangler sunrise/sunset i responsen');
+
+        const sunrise = new Date(sunriseIso);
+        const sunset = new Date(sunsetIso);
+
+        sunriseText.textContent = fmtTime(sunrise);
+        sunsetText.textContent = fmtTime(sunset);
+
+        const daylightMs = sunset - sunrise;
+        dayLengthEl.textContent = `Dagslys: ${durationText(daylightMs)}`;
+
+        let progress;
+        if (now < sunrise) {
+          progress = 0;
+          phaseEl.textContent = 'Solstatus: Før soloppgang';
+        } else if (now > sunset) {
+          progress = 1;
+          phaseEl.textContent = 'Solstatus: Etter solnedgang';
+        } else {
+          progress = (now - sunrise) / (sunset - sunrise);
+          const pct = Math.round(progress * 100);
+          phaseEl.textContent = `Solstatus: Over horisonten (${pct}%)`;
+        }
+
+        placeSun(progress);
+
+        updatedEl.textContent = `Oppdatert: ${new Date().toLocaleString('no-NO')}`;
+        statusEl.textContent = 'Klar';
+      } catch (err) {
+        statusEl.textContent = `Klarte ikke hente soldata: ${err.message}`;
+        statusEl.classList.add('error');
+      }
+    }
+
+    loadSunData();
+  </script>
+</body>
+</html>
